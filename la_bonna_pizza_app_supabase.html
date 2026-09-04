@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>La Bonna Pizza • Pedidos</title>
+<style>
+:root{--red:#b51212;--dark:#242424;--bg:#f5f1ed;--card:#fff;--muted:#707070;--ok:#16843d}
+*{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--dark)}
+header{background:var(--red);color:#fff;padding:16px;position:sticky;top:0;z-index:20;box-shadow:0 2px 10px #0003}
+.header{max-width:1100px;margin:auto;display:flex;justify-content:space-between;align-items:center;gap:12px}.brand{display:flex;align-items:center;gap:12px}.logo{width:48px;height:48px;border-radius:50%;background:#fff;color:var(--red);display:grid;place-items:center;font-size:28px}.brand h1{font-size:22px;margin:0}.brand small{opacity:.9}
+nav{max-width:1100px;margin:12px auto 0;display:flex;gap:7px;overflow:auto}nav button{white-space:nowrap}
+main{max-width:1100px;margin:auto;padding:18px}.view{display:none}.view.active{display:block}
+button{border:0;border-radius:10px;padding:11px 14px;font-weight:700;cursor:pointer}.red{background:var(--red);color:white}.dark{background:var(--dark);color:#fff}.light{background:#e9e4df}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:13px}.card{background:var(--card);border-radius:15px;padding:15px;box-shadow:0 2px 10px #00000010;margin-bottom:13px}.row{display:flex;justify-content:space-between;gap:12px;align-items:center}.price{font-weight:800;color:var(--red);font-size:18px}.muted{color:var(--muted);font-size:14px}
+input,select,textarea{width:100%;padding:12px;border:1px solid #ccc;border-radius:9px;margin:5px 0 11px;background:#fff}textarea{min-height:70px;resize:vertical}
+.badge{display:inline-block;padding:5px 8px;border-radius:20px;background:#eee;font-size:12px;font-weight:bold}.total{font-size:24px;font-weight:800}.notice{padding:12px;border-radius:10px;background:#fff3d5;margin-bottom:12px}.status{font-size:12px;padding:6px 9px;border-radius:15px;background:#eee}.status.novo{background:#ffe0e0}.status.preparo{background:#fff0c7}.status.pronto{background:#ddf4df}.status.entregue{background:#dcecff}.ok{color:var(--ok);font-weight:700}.err{color:var(--red);font-weight:700}
+@media(max-width:600px){main{padding:12px}.header{align-items:flex-start}.brand h1{font-size:18px}}
+</style>
+</head>
+<body>
+<header>
+<div class="header"><div class="brand"><div class="logo">🍕</div><div><h1>La Bonna Pizza</h1><small>35 cm • 8 fatias</small></div></div><button class="light" onclick="go('carrinho')">🛒 <span id="cartCount">0</span></button></div>
+<nav>
+<button class="light" onclick="go('pizzas')">🍕 Pizzas</button><button class="light" onclick="go('burgers')">🍔 Hambúrguer</button><button class="light" onclick="go('bebidas')">🥤 Bebidas</button><button class="light" onclick="go('sorvetes')">🍦 Sorvetes</button><button class="light" onclick="go('acais')">🍇 Açaís</button><button class="light" onclick="go('carrinho')">🛒 Carrinho</button><button class="light" onclick="go('admin')">📋 Pedidos</button>
+</nav></header>
+<main>
+<div id="dbStatus" class="notice">🔄 Conectando ao banco de dados...</div>
+<section id="pizzas" class="view active"><div class="card"><h2>🍕 Monte sua pizza</h2><p class="muted">Pizza grande 35 cm, 8 fatias. Na meia-meio, o sistema cobra automaticamente o sabor de maior valor.</p>
+<label>Sabor 1</label><select id="s1"></select><label>Sabor 2 (opcional)</label><select id="s2"><option value="">Pizza inteira</option></select>
+<label>Adicionais</label><div id="extras"></div><textarea id="pizzaObs" placeholder="Observação da pizza (opcional)"></textarea><button class="red" onclick="addPizza()">Adicionar pizza</button></div><div id="pizzaCards" class="grid"></div></section>
+<section id="burgers" class="view"><h2>🍔 Hambúrgueres</h2><div id="burgerCards" class="grid"></div></section>
+<section id="bebidas" class="view"><h2>🥤 Bebidas</h2><div id="drinkCards" class="grid"></div></section>
+<section id="sorvetes" class="view"><div class="card"><h2>🍦 Sorvetes por peso</h2><p class="muted">O preço por kg é administrado no banco. Atualmente: R$ 60,00/kg.</p><label>Sabor do sorvete</label><input id="sorveteSabor" placeholder="Ex.: chocolate, morango..."><label>Peso em gramas</label><input id="sorvetePeso" type="number" min="1" step="1" placeholder="Ex.: 300"><button class="red" onclick="addPorPeso('sorvete')">Adicionar sorvete</button></div></section>
+<section id="acais" class="view"><div class="card"><h2>🍇 Açaí por peso</h2><p class="muted">O preço por kg é administrado no banco. Atualmente: R$ 55,00/kg.</p><label>Sabor do açaí</label><input id="acaiSabor" placeholder="Ex.: açaí tradicional..."><label>Peso em gramas</label><input id="acaiPeso" type="number" min="1" step="1" placeholder="Ex.: 300"><button class="red" onclick="addPorPeso('acai')">Adicionar açaí</button></div></section>
+<section id="carrinho" class="view"><div class="card"><h2>🛒 Seu pedido</h2><div id="cartItems"></div><hr><div class="row"><span class="total">Total</span><span id="total" class="total">R$ 0,00</span></div></div>
+<div class="card"><h2>📍 Entrega e pagamento</h2><input id="client" placeholder="Nome"><input id="phone" placeholder="Telefone"><select id="mode"><option value="delivery">Delivery</option><option value="retirada">Retirada na pizzaria</option></select>
+<div id="addressBox"><input id="address" placeholder="Endereço completo"><label>Bairro</label><select id="bairro"><option value="">Selecione o bairro</option></select><div id="feeInfo" class="muted">Taxa de entrega: R$ 0,00</div></div>
+<select id="payment"><option>Pix</option><option>Dinheiro</option><option>Cartão</option></select><input id="change" placeholder="Troco para (se necessário)"><textarea id="orderObs" placeholder="Observações do pedido"></textarea>
+<button class="red" onclick="sendOrder()">📲 Finalizar pedido</button></div></section>
+<section id="admin" class="view"><div class="card"><h2>📋 Pedidos</h2><p class="muted">Os pedidos enviados pelo site são gravados no banco de dados. Esta tela ainda é apenas uma visualização local de apoio.</p><div id="orders"></div></div></section>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL='https://lkusoqlljnkfmtwfhxfy.supabase.co';
+const SUPABASE_KEY='sb_publishable_xYzPsObMWkWGEpqgAqSOdQ_QIruUZBc';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const fallbackPizzas=[['Mussarela',54.99],['Calabresa',54.99],['Frango',54.99],['Mista',54.99],['2 Queijos',54.99],['3 Queijos',54.99],['Mineira',54.99],['Napolitana',54.99],['Baiana',54.99],['Frango Catupiry',57.99],['Frango Cheddar',57.99],['Calabresa Catupiry',57.99],['Calabresa Cheddar',57.99],['Bacon',57.99],['Bacon Catupiry',57.99],['Bacon Cheddar',57.99],['Lombinho',57.99],['Lombinho Catupiry',57.99],['Lombinho Cheddar',57.99],['Atum',57.99],['Atum Catupiry',57.99],['Atum Cheddar',57.99],['Francalabresa',57.99],['Franbacon',57.99],['Margarita',57.99],['Portuguesa',57.99],['4 Carnes',64.99],['4 Queijos',64.99],['Carne de Sol',64.99],['Carne de Sol Catupiry',64.99],['Carne de Sol Cheddar',64.99],['Portuguesa Especial',64.99],['Da Casa',64.99]];
+const fallbackBurgers=[['Hambúrguer Clássico',15],['Hambúrguer Especial',18],['Hambúrguer Completo',20]];
+const fallbackDrinks=[['Refrigerante 1L',10],['Refrigerante 350ml',6],['Água com gás',4],['Água sem gás',3],['Água de coco',6],['Suco Del Valle',6],['Suco de polpa',10],['Amstel',6],['Heineken Long Neck',12]];
+const extrasData=[['Bacon extra',5],['Catupiry extra',5],['Cheddar extra',5],['Mussarela extra',7]];
+let pizzas=[],burgers=[],drinks=[],extras=extrasData,bairros=[],pesoProdutos=[];let cart=[];let localOrders=JSON.parse(localStorage.getItem('lbp_orders')||'[]');
+const money=v=>Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+function go(id){document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');if(id==='carrinho')renderCart();if(id==='admin')renderOrders();scrollTo(0,0)}
+function setStatus(msg,ok=true){const el=document.getElementById('dbStatus');el.textContent=(ok?'✅ ':'⚠️ ')+msg;el.className='notice '+(ok?'ok':'err')}
+async function loadData(){
+ try{
+  const [p,b,d,br,peso]=await Promise.all([
+   sb.from('produtos').select('id,nome,categoria,preco,ativo').eq('ativo',true),
+   sb.from('produtos').select('id,nome,categoria,preco,ativo').eq('ativo',true).ilike('categoria','%Hamb%'),
+   sb.from('produtos').select('id,nome,categoria,preco,ativo').eq('ativo',true).ilike('categoria','%Beb%'),
+   sb.from('bairros').select('id,nome,taxa,ativo').eq('ativo',true).order('nome'),
+   sb.from('produtos_peso').select('id,nome,categoria,preco_kg,ativo').eq('ativo',true)
+  ]);
+  const firstError=[p,b,d,br,peso].find(x=>x.error);
+  if(firstError)throw firstError.error;
+  const all=p.data||[];
+  const pz=all.filter(x=>/pizza/i.test(x.categoria));
+  const bg=b.data||all.filter(x=>/hamb/i.test(x.categoria));
+  const dr=d.data||all.filter(x=>/beb/i.test(x.categoria));
+  pizzas=pz.length?pz.map(x=>[x.nome,Number(x.preco)]):fallbackPizzas;
+  burgers=bg.length?bg.map(x=>[x.nome,Number(x.preco)]):fallbackBurgers;
+  drinks=dr.length?dr.map(x=>[x.nome,Number(x.preco)]):fallbackDrinks;
+  bairros=br.data||[];pesoProdutos=peso.data||[];
+  const sor=pesoProdutos.find(x=>/sorvete/i.test(x.categoria)||/sorvete/i.test(x.nome));const aca=pesoProdutos.find(x=>/aça/i.test(x.categoria)||/aça/i.test(x.nome));
+  if(sor)document.querySelector('#sorvetes .muted').textContent='O preço por kg é administrado no banco. Atualmente: '+money(sor.preco_kg)+'/kg.';
+  if(aca)document.querySelector('#acais .muted').textContent='O preço por kg é administrado no banco. Atualmente: '+money(aca.preco_kg)+'/kg.';
+  renderAll();setStatus('Cardápio conectado ao banco de dados.',true);
+ }catch(e){console.error(e);pizzas=fallbackPizzas;burgers=fallbackBurgers;drinks=fallbackDrinks;renderAll();setStatus('O site abriu, mas o banco ainda não liberou alguma leitura. O cardápio de segurança foi carregado.',false)}
+}
+function renderAll(){
+ s1.innerHTML=pizzas.map((p,i)=>`<option value="${i}">${p[0]} — ${money(p[1])}</option>`).join('');
+ s2.innerHTML='<option value="">Pizza inteira</option>'+pizzas.map((p,i)=>`<option value="${i}">${p[0]} — ${money(p[1])}</option>`).join('');
+ document.getElementById('extras').innerHTML=extras.map((e,i)=>`<label><input type="checkbox" class="extra" value="${i}"> ${e[0]} (+${money(e[1])})</label>`).join('');
+ pizzaCards.innerHTML=pizzas.map(p=>`<div class="card"><b>${p[0]}</b><div class="price">${money(p[1])}</div><span class="badge">35 cm • 8 fatias</span></div>`).join('');
+ burgerCards.innerHTML=cards(burgers,'burger');drinkCards.innerHTML=cards(drinks,'drink');
+ bairro.innerHTML='<option value="">Selecione o bairro</option>'+bairros.map(x=>`<option value="${x.id}">${x.nome} — ${money(x.taxa)}</option>`).join('');
+ renderCart();
+}
+function cards(list,type){return list.map((p,i)=>`<div class="card"><div class="row"><div><b>${p[0]}</b><div class="price">${money(p[1])}</div></div><button class="red" onclick="addItem('${type}',${i})">Adicionar</button></div></div>`).join('')}
+function addPorPeso(type){let sabor=(type==='sorvete'?sorveteSabor.value:acaiSabor.value).trim();let peso=Number(type==='sorvete'?sorvetePeso.value:acaiPeso.value);if(!sabor)return alert('Informe o sabor.');if(!peso||peso<=0)return alert('Informe o peso em gramas.');let prod=pesoProdutos.find(x=>type==='sorvete'?/sorvete/i.test(x.categoria)||/sorvete/i.test(x.nome):/aça/i.test(x.categoria)||/aça/i.test(x.nome));let kg=prod?Number(prod.preco_kg):(type==='sorvete'?60:55);let price=peso/1000*kg;cart.push({name:(type==='sorvete'?'Sorvete':'Açaí')+' — '+sabor+' ('+peso+' g)',price,qty:1});if(type==='sorvete'){sorveteSabor.value='';sorvetePeso.value=''}else{acaiSabor.value='';acaiPeso.value=''}updateCount();alert('Adicionado ao carrinho!')}
+function addPizza(){let i=+s1.value,j=s2.value===''?null:+s2.value,base=j===null?pizzas[i][1]:Math.max(pizzas[i][1],pizzas[j][1]);let ex=[...document.querySelectorAll('.extra:checked')].map(x=>extras[+x.value]);let ep=ex.reduce((a,e)=>a+e[1],0);let name=j===null?'Pizza — '+pizzas[i][0]:'Pizza meia-meio — '+pizzas[i][0]+' + '+pizzas[j][0];cart.push({name,detail:ex.length?'Adicionais: '+ex.map(e=>e[0]).join(', '):'',obs:pizzaObs.value,price:base+ep,qty:1});pizzaObs.value='';document.querySelectorAll('.extra').forEach(x=>x.checked=false);s2.value='';updateCount();alert('Pizza adicionada ao carrinho!')}
+function addItem(type,i){let list=type==='burger'?burgers:drinks;let found=cart.find(x=>x.name===list[i][0]&&!x.detail);if(found)found.qty++;else cart.push({name:list[i][0],price:list[i][1],qty:1});updateCount()}
+function updateCount(){cartCount.textContent=cart.reduce((a,x)=>a+x.qty,0);renderCart()}
+function getFee(){if(mode.value!=='delivery')return 0;let id=bairro.value;let b=bairros.find(x=>String(x.id)===String(id));return b?Number(b.taxa):0}
+function renderCart(){if(!cart.length){cartItems.innerHTML='<p class="muted">Seu carrinho está vazio.</p>';total.textContent=money(0);return}cartItems.innerHTML=cart.map((x,i)=>`<div class="card"><div class="row"><div><b>${x.qty}x ${x.name}</b><div class="muted">${x.detail||''} ${x.obs||''}</div></div><div><b>${money(x.price*x.qty)}</b><br><button onclick="minus(${i})">−</button><button onclick="plus(${i})">+</button><button onclick="removeItem(${i})">🗑</button></div></div></div>`).join('');let t=cart.reduce((a,x)=>a+x.price*x.qty,0)+getFee();total.textContent=money(t);feeInfo.textContent='Taxa de entrega: '+money(getFee())}
+function plus(i){cart[i].qty++;updateCount()}function minus(i){if(--cart[i].qty<=0)cart.splice(i,1);updateCount()}function removeItem(i){cart.splice(i,1);updateCount()}
+mode.onchange=()=>{addressBox.style.display=mode.value==='delivery'?'block':'none';renderCart()};bairro.onchange=renderCart;
+function buildOrder(){let subtotal=cart.reduce((a,x)=>a+x.price*x.qty,0),tax=getFee();return {client_name:client.value.trim(),phone:phone.value.trim(),address:mode.value==='delivery'?address.value.trim():'',bairro:(bairros.find(x=>String(x.id)===String(bairro.value))||{}).nome||'',taxa_entrega:tax,tipo_entrega:mode.value==='delivery'?'Delivery':'Retirada',pagamento:payment.value,troco:Number(change.value||0),observacao:orderObs.value.trim(),total:subtotal+tax,status:'Novo',items:cart.map(x=>({name:x.name,detail:x.detail||'',obs:x.obs||'',qty:x.qty,price:x.price,subtotal:x.price*x.qty}))}}
+async function sendOrder(){if(!cart.length)return alert('Carrinho vazio.');if(!client.value.trim())return alert('Informe o nome.');if(!phone.value.trim())return alert('Informe o telefone.');if(mode.value==='delivery'&&!bairro.value)return alert('Selecione o bairro.');let o=buildOrder();try{const {data,error}=await sb.from('pedidos').insert({cliente_nome:o.client_name,telefone:o.phone,endereco:o.address,bairro:o.bairro,taxa_entrega:o.taxa_entrega,tipo_entrega:o.tipo_entrega,pagamento:o.pagamento,troco:o.troco,observacao:o.observacao,total:o.total,status:o.status}).select('id').single();if(error)throw error;const pedidoId=data.id;const rows=o.items.map(x=>({pedido_id:pedidoId,produto_nome:x.name+(x.detail?' | '+x.detail:'')+(x.obs?' | Obs: '+x.obs:''),quantidade:x.qty,preco_unitario:x.price,subtotal:x.subtotal}));const {error:itemError}=await sb.from('itens_pedido').insert(rows);if(itemError)throw itemError;localOrders.unshift({...o,id:pedidoId,date:new Date().toLocaleString('pt-BR')});localStorage.setItem('lbp_orders',JSON.stringify(localOrders));alert('Pedido enviado e registrado com sucesso!');cart=[];updateCount();go('pizzas');}catch(e){console.error(e);alert('Não foi possível registrar o pedido no banco ainda. Verifique as permissões do Supabase.');}}
+function renderOrders(){if(!localOrders.length){orders.innerHTML='<p class="muted">Nenhum pedido enviado neste aparelho ainda.</p>';return}orders.innerHTML=localOrders.map(o=>`<div class="card"><b>Pedido #${o.id||''} — ${o.client_name}</b><p class="muted">${o.date||''} • ${o.tipo_entrega}</p><ul>${o.items.map(x=>`<li>${x.qty}x ${x.name} — ${money(x.subtotal)}</li>`).join('')}</ul><b>Total: ${money(o.total)}</b></div>`).join('')}
+loadData();
+</script></body></html>
